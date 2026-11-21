@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+        body { background-color: #000; color: #fff; overflow: hidden; }
+        .video-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .overlay { position: absolute; bottom: 20px; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 20px; }
+        .bottom-info h3 { margin-bottom: 10px; }
+        .side-actions { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .action-btn { text-align: center; font-size: 30px; cursor: pointer; user-select: none; }
+        .action-btn span { font-size: 12px; display: block; margin-top: 5px; }
+        .heart { transition: transform 0.2s; }
+        .heart:active { transform: scale(1.3); }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video src="https://www.w3schools.com/html/mov_bbb.mp4" autoplay loop muted playsinline></video>
+        <div class="overlay">
+            <div class="bottom-info">
+                <h3>@مستخدم_تجريبي</h3>
+                <p>هذا فيديو تجريبي لاختبار النشر على Appwrite 🚀</p>
+            </div>
+            <div class="side-actions">
+                <div class="action-btn">
+                    <div class="heart" id="likeBtn">❤️</div>
+                    <span id="likeCount">...</span>
+                </div>
+                <div class="action-btn">💬<br><span>450</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. إعداد الاتصال بـ Appwrite (استبدل هذه البيانات ببيانات مشروعك)
+        const { Client, Databases } = Appwrite;
+        const client = new Client()
+            .setEndpoint('https://cloud.appwrite.io/v1') // تأكد من الـ Endpoint الصحيح
+            .setProject('ضع_هنا_معرف_مشروعك_Project_ID'); 
+            
+        const databases = new Databases(client);
+        
+        // ضع هنا الـ IDs التي نسختها من Appwrite
+        const DATABASE_ID = 'ضع_هنا_معرف_قاعدة_البيانات';
+        const COLLECTION_ID = 'ضع_هنا_معرف_المجموعة';
+        const DOCUMENT_ID = 'ضع_هنا_معرف_المستند_الذي_أنشأته';
+
+        const likeCountElement = document.getElementById('likeCount');
+        const likeBtn = document.getElementById('likeBtn');
+
+        // 2. جلب عدد الإعجابات عند فتح الصفحة
+        async function getLikes() {
+            try {
+                const doc = await databases.getDocument(DATABASE_ID, COLLECTION_ID, DOCUMENT_ID);
+                likeCountElement.innerText = doc.count;
+            } catch (error) {
+                console.error("خطأ في جلب الإعجابات:", error);
+                likeCountElement.innerText = "Error";
+            }
+        }
+
+        // 3. زيادة الإعجاب عند الضغط
+        likeBtn.addEventListener('click', async () => {
+            try {
+                const doc = await databases.getDocument(DATABASE_ID, COLLECTION_ID, DOCUMENT_ID);
+                const newCount = doc.count + 1;
+                
+                await databases.updateDocument(DATABASE_ID, COLLECTION_ID, DOCUMENT_ID, {
+                    count: newCount
+                });
+                
+                likeCountElement.innerText = newCount;
+            } catch (error) {
+                console.error("خطأ في التحديث:", error);
+            }
+        });
+
+        // تشغيل جلب الإعجابات فوراً
+        getLikes();
+    </script>
+</body>
+</html>
