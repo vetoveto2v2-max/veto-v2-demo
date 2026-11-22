@@ -81,6 +81,7 @@
             } catch (error) {
                 console.error("خطأ في جلب الفيديوهات:", error);
                 feedContainer.innerHTML = '<div class="loading">حدث خطأ أثناء تحميل الفيديوهات. تأكد من الصلاحيات.</div>';
+                feedContainer.innerHTML = '<div class="loading">الخطأ هو: ' + error.message + '</div>';
             }
         }
 
