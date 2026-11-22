@@ -87,5 +87,11 @@
         // تشغيل الدالة عند فتح الصفحة
         loadVideos();
     </script>
+    <style>
+    html, body { margin: 0 !important; padding: 0 !important; height: 100% !important; overflow: hidden !important; }
+    #videos-feed { height: 100vh !important; overflow-y: scroll !important; scroll-snap-type: y mandatory !important; }
+    .video-container { width: 100vw !important; height: 100vh !important; scroll-snap-align: start !important; }
+    video { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+</style>
 </body>
 </html>
