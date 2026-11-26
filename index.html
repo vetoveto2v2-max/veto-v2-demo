@@ -16,39 +16,70 @@
         .side-actions { display: flex; flex-direction: column; align-items: center; gap: 20px; pointer-events: auto; }
         .action-btn { text-align: center; font-size: 30px; cursor: pointer; }
         .action-btn span { font-size: 12px; display: block; margin-top: 5px; }
+        .loading { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 24px; }
     </style>
 </head>
 <body>
     <div id="videos-feed">
-        <!-- الفيديو الأول -->
-        <div class="video-container">
-            <video src="https://cloud.appwrite.io/v1/storage/buckets/6b01f65500371f088628/files/6b02921d002a895f6d65/view?project=6ade156900082102d9ba" autoplay loop muted playsinline></video>
-            <div class="overlay">
-                <div class="bottom-info">
-                    <h3>@مستخدم_1</h3>
-                    <p>الفيديو الأول من Appwrite</p>
-                </div>
-                <div class="side-actions">
-                    <div class="action-btn">❤️<br><span>12K</span></div>
-                    <div class="action-btn">💬<br><span>450</span></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- الفيديو الثاني -->
-        <div class="video-container">
-            <video src="https://cloud.appwrite.io/v1/storage/buckets/6b01f65500371f088628/files/6b0291f4001cc6dcb5e8/view?project=6ade156900082102d9ba" autoplay loop muted playsinline></video>
-            <div class="overlay">
-                <div class="bottom-info">
-                    <h3>@مستخدم_2</h3>
-                    <p>الفيديو الثاني من Appwrite</p>
-                </div>
-                <div class="side-actions">
-                    <div class="action-btn">❤️<br><span>5K</span></div>
-                    <div class="action-btn">💬<br><span>120</span></div>
-                </div>
-            </div>
-        </div>
+        <div class="loading">جاري تحميل الفيديوهات...</div>
     </div>
+
+    <script>
+        const PROJECT_ID = '6ade156900082102d9ba';
+        const BUCKET_ID = '6b01f65500371f088628';
+        
+        // هذا الرابط يجلب قائمة الملفات مباشرة من خوادم Appwrite بدون حماية CORS
+        const API_URL = `https://cloud.appwrite.io/v1/storage/buckets/${BUCKET_ID}/files?queries[]=limit(100)`;
+
+        async function loadVideos() {
+            const feedContainer = document.getElementById('videos-feed');
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: {
+                        'X-Appwrite-Project': PROJECT_ID,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!data.files || data.files.length === 0) {
+                    feedContainer.innerHTML = '<div class="loading">لا توجد فيديوهات متاحة.</div>';
+                    return;
+                }
+
+                feedContainer.innerHTML = ''; // مسح شاشة التحميل
+
+                data.files.forEach(file => {
+                    const videoUrl = `https://cloud.appwrite.io/v1/storage/buckets/${BUCKET_ID}/files/${file.$id}/view?project=${PROJECT_ID}`;
+
+                    const videoElement = document.createElement('div');
+                    videoElement.className = 'video-container';
+                    videoElement.innerHTML = `
+                        <video src="${videoUrl}" autoplay loop muted playsinline></video>
+                        <div class="overlay">
+                            <div class="bottom-info">
+                                <h3>@مستخدم_جديد</h3>
+                                <p>${file.name}</p>
+                            </div>
+                            <div class="side-actions">
+                                <div class="action-btn">❤️<br><span>0</span></div>
+                                <div class="action-btn">💬<br><span>0</span></div>
+                            </div>
+                        </div>
+                    `;
+                    feedContainer.appendChild(videoElement);
+                });
+
+            } catch (error) {
+                console.error("خطأ:", error);
+                feedContainer.innerHTML = '<div class="loading">حدث خطأ في الاتصال. يرجى المحاولة لاحقاً.</div>';
+            }
+        }
+
+        loadVideos();
+    </script>
 </body>
 </html>
