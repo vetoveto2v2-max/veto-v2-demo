@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Veto App</title>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
     <style>
         html, body { margin: 0; padding: 0; height: 100%; background-color: #000; color: #fff; overflow: hidden; }
         #videos-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
@@ -25,35 +26,34 @@
     </div>
 
     <script>
-        const PROJECT_ID = '6ade156900082102d9ba';
-        const BUCKET_ID = '6b01f65500371f088628';
+        const { Client, Storage, Query } = Appwrite;
         
-        // هذا الرابط يجلب قائمة الملفات مباشرة من خوادم Appwrite بدون حماية CORS
-        const API_URL = `https://cloud.appwrite.io/v1/storage/buckets/${BUCKET_ID}/files?queries[]=limit(100)`;
+        // تأكد من أن الـ Endpoint صحيح (cloud.appwrite.io)
+        const client = new Client()
+            .setEndpoint('https://cloud.appwrite.io/v1') 
+            .setProject('6ade156900082102d9ba');
+            
+        const storage = new Storage(client);
+        const BUCKET_ID = '6b01f65500371f088628';
 
         async function loadVideos() {
             const feedContainer = document.getElementById('videos-feed');
             
             try {
-                const response = await fetch(API_URL, {
-                    method: 'GET',
-                    headers: {
-                        'X-Appwrite-Project': PROJECT_ID,
-                        'Content-Type': 'application/json'
-                    }
-                });
+                // إضافة Query.limit(100) لجلب كل الفيديوهات وليس 25 فقط
+                const response = await storage.listFiles(BUCKET_ID, [
+                    Query.limit(100)
+                ]);
+                
+                feedContainer.innerHTML = ''; 
 
-                const data = await response.json();
-
-                if (!data.files || data.files.length === 0) {
-                    feedContainer.innerHTML = '<div class="loading">لا توجد فيديوهات متاحة.</div>';
+                if (response.files.length === 0) {
+                    feedContainer.innerHTML = '<div class="loading">لا توجد فيديوهات.</div>';
                     return;
                 }
 
-                feedContainer.innerHTML = ''; // مسح شاشة التحميل
-
-                data.files.forEach(file => {
-                    const videoUrl = `https://cloud.appwrite.io/v1/storage/buckets/${BUCKET_ID}/files/${file.$id}/view?project=${PROJECT_ID}`;
+                response.files.forEach(file => {
+                    const videoUrl = `https://cloud.appwrite.io/v1/storage/buckets/${BUCKET_ID}/files/${file.$id}/view?project=6ade156900082102d9ba`;
 
                     const videoElement = document.createElement('div');
                     videoElement.className = 'video-container';
@@ -75,7 +75,7 @@
 
             } catch (error) {
                 console.error("خطأ:", error);
-                feedContainer.innerHTML = '<div class="loading">حدث خطأ في الاتصال. يرجى المحاولة لاحقاً.</div>';
+                feedContainer.innerHTML = '<div class="loading">حدث خطأ. تأكد من إعدادات المنصة (Platform) في Appwrite.</div>';
             }
         }
 
