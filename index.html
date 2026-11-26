@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Veto App</title>
-    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
     <style>
         html, body { margin: 0; padding: 0; height: 100%; background-color: #000; color: #fff; overflow: hidden; }
         #videos-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
@@ -17,69 +16,47 @@
         .side-actions { display: flex; flex-direction: column; align-items: center; gap: 20px; pointer-events: auto; }
         .action-btn { text-align: center; font-size: 30px; cursor: pointer; }
         .action-btn span { font-size: 12px; display: block; margin-top: 5px; }
-        .loading { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 24px; }
     </style>
 </head>
 <body>
     <div id="videos-feed">
-        <div class="loading">جاري تحميل الفيديوهات...</div>
-    </div>
-
-    <script>
-        const { Client, Storage, Query } = Appwrite;
         
-        // تأكد من أن الـ Endpoint صحيح (cloud.appwrite.io)
-        const client = new Client()
-            .setEndpoint('https://cloud.appwrite.io/v1') 
-            .setProject('6ade156900082102d9ba');
-            
-        const storage = new Storage(client);
-        const BUCKET_ID = '6b01f65500371f088628';
+        <!-- الفيديو الأول -->
+        <div class="video-container">
+            <video src="https://cloud.appwrite.io/v1/storage/buckets/6b01f65500371f088628/files/6b02921d002a895f6d65/view?project=6ade156900082102d9ba" autoplay loop muted playsinline></video>
+            <div class="overlay">
+                <div class="bottom-info"><h3>@مستخدم_1</h3><p>الفيديو الأول</p></div>
+                <div class="side-actions"><div class="action-btn">❤️<br><span>12K</span></div></div>
+            </div>
+        </div>
 
-        async function loadVideos() {
-            const feedContainer = document.getElementById('videos-feed');
-            
-            try {
-                // إضافة Query.limit(100) لجلب كل الفيديوهات وليس 25 فقط
-                const response = await storage.listFiles(BUCKET_ID, [
-                    Query.limit(100)
-                ]);
-                
-                feedContainer.innerHTML = ''; 
+        <!-- الفيديو الثاني -->
+        <div class="video-container">
+            <video src="https://cloud.appwrite.io/v1/storage/buckets/6b01f65500371f088628/files/6b0291f4001cc6dcb5e8/view?project=6ade156900082102d9ba" autoplay loop muted playsinline></video>
+            <div class="overlay">
+                <div class="bottom-info"><h3>@مستخدم_2</h3><p>الفيديو الثاني</p></div>
+                <div class="side-actions"><div class="action-btn">❤️<br><span>5K</span></div></div>
+            </div>
+        </div>
 
-                if (response.files.length === 0) {
-                    feedContainer.innerHTML = '<div class="loading">لا توجد فيديوهات.</div>';
-                    return;
-                }
+        <!-- ضع هنا رابط الفيديو الثالث (استبدل الرابط) -->
+        <div class="video-container">
+            <video src="ضع_رابط_الفيديو_الثالث_هنا" autoplay loop muted playsinline></video>
+            <div class="overlay">
+                <div class="bottom-info"><h3>@مستخدم_3</h3><p>الفيديو الثالث</p></div>
+                <div class="side-actions"><div class="action-btn">❤️<br><span>0</span></div></div>
+            </div>
+        </div>
 
-                response.files.forEach(file => {
-                    const videoUrl = `https://cloud.appwrite.io/v1/storage/buckets/${BUCKET_ID}/files/${file.$id}/view?project=6ade156900082102d9ba`;
+        <!-- ضع هنا رابط الفيديو الرابع (استبدل الرابط) -->
+        <div class="video-container">
+            <video src="ضع_رابط_الفيديو_الرابع_هنا" autoplay loop muted playsinline></video>
+            <div class="overlay">
+                <div class="bottom-info"><h3>@مستخدم_4</h3><p>الفيديو الرابع</p></div>
+                <div class="side-actions"><div class="action-btn">❤️<br><span>0</span></div></div>
+            </div>
+        </div>
 
-                    const videoElement = document.createElement('div');
-                    videoElement.className = 'video-container';
-                    videoElement.innerHTML = `
-                        <video src="${videoUrl}" autoplay loop muted playsinline></video>
-                        <div class="overlay">
-                            <div class="bottom-info">
-                                <h3>@مستخدم_جديد</h3>
-                                <p>${file.name}</p>
-                            </div>
-                            <div class="side-actions">
-                                <div class="action-btn">❤️<br><span>0</span></div>
-                                <div class="action-btn">💬<br><span>0</span></div>
-                            </div>
-                        </div>
-                    `;
-                    feedContainer.appendChild(videoElement);
-                });
-
-            } catch (error) {
-                console.error("خطأ:", error);
-                feedContainer.innerHTML = '<div class="loading">حدث خطأ. تأكد من إعدادات المنصة (Platform) في Appwrite.</div>';
-            }
-        }
-
-        loadVideos();
-    </script>
+    </div>
 </body>
 </html>
