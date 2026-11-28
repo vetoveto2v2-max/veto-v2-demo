@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Veto App</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
-    
     <style>
         html, body { margin: 0; padding: 0; height: 100%; background-color: #000; color: #fff; overflow: hidden; }
         #videos-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
@@ -22,67 +20,54 @@
         .loading { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 24px; }
 
         #upload-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #ff0050;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 20px;
-            cursor: pointer;
-            z-index: 1000;
+            position: fixed; top: 20px; right: 20px; background-color: #ff0050;
+            color: white; border: none; padding: 10px 20px; font-size: 18px;
+            font-weight: bold; border-radius: 20px; cursor: pointer; z-index: 1000;
         }
+        #file-input { display: none; }
     </style>
 </head>
 <body>
     <button id="upload-btn">+ رفع فيديو</button>
-
-    <div id="videos-feed">
-        <div class="loading">جاري تحميل الفيديوهات...</div>
-    </div>
+    <input type="file" id="file-input" accept="video/*">
+    <div id="videos-feed"><div class="loading">جاري تحميل الفيديوهات...</div></div>
 
     <script>
-        // ⚠️ ضع هنا رابط المشروع (Project URL) من صفحة Settings > API في Supabase
-        const SUPABASE_URL = 'https://ضع_هنا_رابط_المشروع.supabase.co'; 
+        // ⚠️ هنا تضع رابط مشروعك والمفتاح (الذي أرسلته لي سابقاً)
+        const SUPABASE_URL = 'https://fjhoczwmvslylnhfn.supabase.co'; // اكتب الرابط كاملاً هنا
+        const SUPABASE_KEY = 'sb_publishable_R1ywm...'; // ضع المفتاح كاملاً هنا
         
-        // ✅ هذا هو المفتاح الذي أرسلته (تم وضعه بنجاح)
-        const SUPABASE_KEY = 'sb_publishable_R1ywmRST7hS4GvvI8P4BQg_dadf2nz6';
-        
-        // إعدادات Cloudinary
-        const CLOUDINARY_CLOUD_NAME = 'geuq0m9p'; 
-        const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; 
-
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // دالة جلب الفيديوهات من الـ Bucket
         async function loadVideos() {
             const feedContainer = document.getElementById('videos-feed');
             feedContainer.innerHTML = ''; 
 
             try {
-                const { data, error } = await _supabase
-                    .from('videos')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                // جلب قائمة الملفات من مساحة "videos"
+                const { data, error } = await _supabase.storage.from('videos').list();
 
                 if (error) throw error;
 
                 if (!data || data.length === 0) {
-                    feedContainer.innerHTML = '<div class="loading">لا توجد فيديوهات. كن أول من يرفع!</div>';
+                    feedContainer.innerHTML = '<div class="loading">لا توجد فيديوهات.</div>';
                     return;
                 }
 
                 data.forEach((file) => {
+                    // توليد الرابط المباشر لكل ملف
+                    const { data: urlData } = _supabase.storage.from('videos').getPublicUrl(file.name);
+                    const videoUrl = urlData.publicUrl;
+
                     const videoElement = document.createElement('div');
                     videoElement.className = 'video-container';
                     videoElement.innerHTML = `
-                        <video src="${file.video_url}" autoplay loop muted playsinline></video>
+                        <video src="${videoUrl}" autoplay loop muted playsinline></video>
                         <div class="overlay">
                             <div class="bottom-info">
-                                <h3>${file.username || '@مستخدم'}</h3>
-                                <p>فيديو جديد</p>
+                                <h3>@مستخدم_جديد</h3>
+                                <p>${file.name}</p>
                             </div>
                             <div class="side-actions">
                                 <div class="action-btn">❤️<br><span>0</span></div>
@@ -93,36 +78,34 @@
                     feedContainer.appendChild(videoElement);
                 });
             } catch (error) {
-                console.error("خطأ:", error);
-                feedContainer.innerHTML = '<div class="loading">حدث خطأ في تحميل الفيديوهات.</div>';
+                console.error("خطأ في جلب الفيديوهات:", error);
+                feedContainer.innerHTML = '<div class="loading">حدث خطأ. تأكد من إعدادات Bucket (يجب أن يكون Public).</div>';
             }
         }
 
-        const myWidget = cloudinary.createUploadWidget({
-            cloudName: CLOUDINARY_CLOUD_NAME, 
-            uploadPreset: CLOUDINARY_UPLOAD_PRESET,
-            resourceType: 'video'
-        }, (error, result) => { 
-            if (!error && result && result.event === "success") { 
-                saveVideoToDatabase(result.info.secure_url);
+        // دالة رفع الفيديو الجديد
+        document.getElementById('upload-btn').addEventListener('click', () => {
+            document.getElementById('file-input').click();
+        });
+
+        document.getElementById('file-input').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = `video_${Date.now()}.mp4`; // اسم فريد للفيديو
+            
+            // رفع الفيديو إلى Supabase
+            const { data, error } = await _supabase.storage.from('videos').upload(fileName, file);
+
+            if (error) {
+                alert("فشل رفع الفيديو: " + error.message);
+            } else {
+                alert("تم رفع الفيديو بنجاح!");
+                loadVideos(); // تحديث الشاشة لعرضه فوراً
             }
         });
 
-        async function saveVideoToDatabase(videoUrl) {
-            try {
-                await _supabase
-                    .from('videos')
-                    .insert([{ video_url: videoUrl, username: '@مستخدم_تجريبي' }]);
-                loadVideos(); 
-            } catch (error) {
-                alert("فشل حفظ الفيديو.");
-            }
-        }
-
-        document.getElementById("upload-btn").addEventListener("click", function(){
-            myWidget.open();
-        }, false);
-
+        // تشغيل الجلب عند فتح الصفحة
         loadVideos();
     </script>
 </body>
