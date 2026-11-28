@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Veto App</title>
-    <!-- استدعاء مكتبات Supabase و Cloudinary -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
     
@@ -22,7 +21,6 @@
         .action-btn span { font-size: 12px; display: block; margin-top: 5px; }
         .loading { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 24px; }
 
-        /* زر الرفع للمستخدم */
         #upload-btn {
             position: fixed;
             top: 20px;
@@ -40,7 +38,6 @@
     </style>
 </head>
 <body>
-    <!-- الزر الذي سيستخدمه المشترك العادي -->
     <button id="upload-btn">+ رفع فيديو</button>
 
     <div id="videos-feed">
@@ -48,21 +45,18 @@
     </div>
 
     <script>
-        // ⚠️⚠️ هنا تضع المفاتيح التي أرسلتها ⚠️⚠️
-        // 1. ابحث عن "Project URL" في أعلى شاشة إعدادات API في Supabase وانسخه هنا:
-        const SUPABASE_URL = 'ضع_هنا_رابط_المشروع_Project_URL';
+        // ⚠️ ضع هنا رابط المشروع (Project URL) من صفحة Settings > API في Supabase
+        const SUPABASE_URL = 'https://ضع_هنا_رابط_المشروع.supabase.co'; 
         
-        // 2. المفتاح الذي أرسلته لي في الصورة (Publishable key):
-        const SUPABASE_KEY = 'sb_publishable_R1ywm...'; // انسخ المفتاح كاملاً من Supabase وضعه هنا
+        // ✅ هذا هو المفتاح الذي أرسلته (تم وضعه بنجاح)
+        const SUPABASE_KEY = 'sb_publishable_R1ywmRST7hS4GvvI8P4BQg_dadf2nz6';
         
-        // 3. إعدادات Cloudinary (التي أرسلت لي اسم حسابك فيها geuq0m9p):
+        // إعدادات Cloudinary
         const CLOUDINARY_CLOUD_NAME = 'geuq0m9p'; 
         const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; 
 
-        // إعداد الاتصال بقاعدة البيانات
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // دالة جلب الفيديوهات وعرضها
         async function loadVideos() {
             const feedContainer = document.getElementById('videos-feed');
             feedContainer.innerHTML = ''; 
@@ -104,7 +98,6 @@
             }
         }
 
-        // إعداد نافذة رفع الفيديو (Cloudinary)
         const myWidget = cloudinary.createUploadWidget({
             cloudName: CLOUDINARY_CLOUD_NAME, 
             uploadPreset: CLOUDINARY_UPLOAD_PRESET,
@@ -115,19 +108,17 @@
             }
         });
 
-        // حفظ رابط الفيديو في قاعدة البيانات
         async function saveVideoToDatabase(videoUrl) {
             try {
                 await _supabase
                     .from('videos')
                     .insert([{ video_url: videoUrl, username: '@مستخدم_تجريبي' }]);
-                loadVideos(); // تحديث الشاشة فوراً
+                loadVideos(); 
             } catch (error) {
                 alert("فشل حفظ الفيديو.");
             }
         }
 
-        // تفعيل زر الرفع
         document.getElementById("upload-btn").addEventListener("click", function(){
             myWidget.open();
         }, false);
