@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Veto App</title>
+    <!-- استدعاء مكتبات Supabase و Cloudinary -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+    
     <style>
-        html, body { margin: 0; padding: 0; height: 100%; background-color: #000; color: #fff; overflow: hidden; font-family: sans-serif; }
+        html, body { margin: 0; padding: 0; height: 100%; background-color: #000; color: #fff; overflow: hidden; }
         #videos-feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
         .video-container { position: relative; width: 100vw; height: 100vh; scroll-snap-align: start; display: flex; justify-content: center; align-items: center; }
         video { width: 100%; height: 100%; object-fit: cover; }
@@ -17,71 +21,78 @@
         .action-btn { text-align: center; font-size: 30px; cursor: pointer; }
         .action-btn span { font-size: 12px; display: block; margin-top: 5px; }
         .loading { display: flex; justify-content: center; align-items: center; height: 100vh; font-size: 24px; }
-        
-        /* زر الرفع (+) */
-        .upload-btn { position: fixed; top: 20px; right: 20px; background: #fe2c55; color: white; border: none; border-radius: 50%; width: 50px; height: 50px; font-size: 30px; cursor: pointer; z-index: 100; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .upload-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 200; flex-direction: column; justify-content: center; align-items: center; }
-        .upload-modal input { margin-bottom: 20px; color: white; }
-        .upload-modal button { padding: 10px 20px; background: #fe2c55; color: white; border: none; border-radius: 5px; cursor: pointer; }
+
+        /* زر الرفع للمستخدم */
+        #upload-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #ff0050;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
-
-    <!-- زر الرفع للمستخدم -->
-    <button class="upload-btn" id="openUpload">+</button>
-
-    <!-- نافذة الرفع -->
-    <div class="upload-modal" id="uploadModal">
-        <h2>رفع فيديو جديد</h2>
-        <input type="file" id="videoFile" accept="video/*">
-        <button id="uploadBtn">رفع ونشر</button>
-        <button id="closeModal" style="background:#555; margin-top:10px;">إلغاء</button>
-    </div>
+    <!-- الزر الذي سيستخدمه المشترك العادي -->
+    <button id="upload-btn">+ رفع فيديو</button>
 
     <div id="videos-feed">
         <div class="loading">جاري تحميل الفيديوهات...</div>
     </div>
 
     <script>
-        // إعدادات Supabase
-        const SUPABASE_URL = 'https://fjhoczfwmvslylnhfnfu.supabase.co';
-        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_R1ywmRST7hS4GvvI8P4BQg_dadf2nz6';
-        const SUPABASE_SECRET_KEY = 'sb_secret_okdgB...'; // (ضع المفتاح السري كاملاً هنا)
+        // ⚠️⚠️ هنا تضع المفاتيح التي أرسلتها ⚠️⚠️
+        // 1. ابحث عن "Project URL" في أعلى شاشة إعدادات API في Supabase وانسخه هنا:
+        const SUPABASE_URL = 'ضع_هنا_رابط_المشروع_Project_URL';
         
-        // إعدادات Cloudinary
-        const CLOUD_NAME = 'geuq0m9p';
-        const UPLOAD_PRESET = 'ml_default'; // تأكد من أن هذا الاسم يطابق ما أنشأته في Cloudinary
+        // 2. المفتاح الذي أرسلته لي في الصورة (Publishable key):
+        const SUPABASE_KEY = 'sb_publishable_R1ywm...'; // انسخ المفتاح كاملاً من Supabase وضعه هنا
+        
+        // 3. إعدادات Cloudinary (التي أرسلت لي اسم حسابك فيها geuq0m9p):
+        const CLOUDINARY_CLOUD_NAME = 'geuq0m9p'; 
+        const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; 
 
+        // إعداد الاتصال بقاعدة البيانات
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // دالة جلب الفيديوهات وعرضها
         async function loadVideos() {
             const feedContainer = document.getElementById('videos-feed');
-            try {
-                // جلب الفيديوهات من Supabase
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/videos?select=*&order=created_at.desc`, {
-                    headers: {
-                        'apikey': SUPABASE_PUBLISHABLE_KEY,
-                        'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
-                    }
-                });
-                const videos = await response.json();
-                feedContainer.innerHTML = ''; 
+            feedContainer.innerHTML = ''; 
 
-                if (videos.length === 0) {
+            try {
+                const { data, error } = await _supabase
+                    .from('videos')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
                     feedContainer.innerHTML = '<div class="loading">لا توجد فيديوهات. كن أول من يرفع!</div>';
                     return;
                 }
 
-                videos.forEach((video, index) => {
+                data.forEach((file) => {
                     const videoElement = document.createElement('div');
                     videoElement.className = 'video-container';
                     videoElement.innerHTML = `
-                        <video src="${video.video_url}" autoplay loop muted playsinline></video>
+                        <video src="${file.video_url}" autoplay loop muted playsinline></video>
                         <div class="overlay">
                             <div class="bottom-info">
-                                <h3>${video.username || '@مستخدم_جديد'}</h3>
+                                <h3>${file.username || '@مستخدم'}</h3>
                                 <p>فيديو جديد</p>
                             </div>
                             <div class="side-actions">
                                 <div class="action-btn">❤️<br><span>0</span></div>
+                                <div class="action-btn">💬<br><span>0</span></div>
                             </div>
                         </div>
                     `;
@@ -93,57 +104,33 @@
             }
         }
 
-        // كود رفع الفيديو
-        document.getElementById('openUpload').onclick = () => document.getElementById('uploadModal').style.display = 'flex';
-        document.getElementById('closeModal').onclick = () => document.getElementById('uploadModal').style.display = 'none';
-
-        document.getElementById('uploadBtn').onclick = async () => {
-            const file = document.getElementById('videoFile').files[0];
-            if (!file) return alert('اختر فيديو أولاً');
-
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('upload_preset', UPLOAD_PRESET);
-
-            try {
-                document.getElementById('uploadBtn').innerText = 'جاري الرفع...';
-                
-                // 1. رفع الفيديو إلى Cloudinary
-                const cloudRes = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-                const cloudData = await cloudRes.json();
-
-                if (cloudData.secure_url) {
-                    // 2. حفظ الرابط في Supabase
-                    await fetch(`${SUPABASE_URL}/rest/v1/videos`, {
-                        method: 'POST',
-                        headers: {
-                            'apikey': SUPABASE_PUBLISHABLE_KEY,
-                            'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=minimal'
-                        },
-                        body: JSON.stringify({
-                            video_url: cloudData.secure_url,
-                            username: '@مستخدم_جديد'
-                        })
-                    });
-
-                    alert('تم الرفع بنجاح!');
-                    document.getElementById('uploadModal').style.display = 'none';
-                    loadVideos(); // إعادة تحميل الشاشة
-                } else {
-                    alert('فشل الرفع إلى Cloudinary');
-                }
-            } catch (error) {
-                console.error(error);
-                alert('حدث خطأ أثناء الرفع');
-            } finally {
-                document.getElementById('uploadBtn').innerText = 'رفع ونشر';
+        // إعداد نافذة رفع الفيديو (Cloudinary)
+        const myWidget = cloudinary.createUploadWidget({
+            cloudName: CLOUDINARY_CLOUD_NAME, 
+            uploadPreset: CLOUDINARY_UPLOAD_PRESET,
+            resourceType: 'video'
+        }, (error, result) => { 
+            if (!error && result && result.event === "success") { 
+                saveVideoToDatabase(result.info.secure_url);
             }
-        };
+        });
+
+        // حفظ رابط الفيديو في قاعدة البيانات
+        async function saveVideoToDatabase(videoUrl) {
+            try {
+                await _supabase
+                    .from('videos')
+                    .insert([{ video_url: videoUrl, username: '@مستخدم_تجريبي' }]);
+                loadVideos(); // تحديث الشاشة فوراً
+            } catch (error) {
+                alert("فشل حفظ الفيديو.");
+            }
+        }
+
+        // تفعيل زر الرفع
+        document.getElementById("upload-btn").addEventListener("click", function(){
+            myWidget.open();
+        }, false);
 
         loadVideos();
     </script>
